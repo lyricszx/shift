@@ -1,4 +1,4 @@
--- ShiftLock Script
+-- ShiftLock Exploit Mobile
 if not game:IsLoaded() then game.Loaded:Wait() end
 
 local Players = game:GetService("Players")
@@ -29,6 +29,7 @@ button.Draggable = true
 local shiftLockEnabled = false
 local rotating = false
 local lastTouchPos = nil
+local activeTouches = {}
 
 button.MouseButton1Click:Connect(function()
     shiftLockEnabled = not shiftLockEnabled
@@ -41,22 +42,30 @@ button.MouseButton1Click:Connect(function()
 end)
 
 UserInputService.TouchStarted:Connect(function(input, gp)
-    if shiftLockEnabled and not gp then
-        -- Detecta se o toque não foi em UI
-        rotating = true
-        lastTouchPos = input.Position
+    if shiftLockEnabled then
+        table.insert(activeTouches, input)
+        if #activeTouches >= 2 then
+            rotating = true
+            lastTouchPos = input.Position
+        end
     end
 end)
 
 UserInputService.TouchEnded:Connect(function(input, gp)
-    if rotating then
+    for i, v in ipairs(activeTouches) do
+        if v == input then
+            table.remove(activeTouches, i)
+            break
+        end
+    end
+    if #activeTouches < 2 then
         rotating = false
         lastTouchPos = nil
     end
 end)
 
 UserInputService.TouchMoved:Connect(function(input, gp)
-    if rotating and lastTouchPos then
+    if shiftLockEnabled and rotating and lastTouchPos then
         local delta = input.Position - lastTouchPos
         local camCF = camera.CFrame
         local rot = CFrame.Angles(0, -delta.X * 0.005, 0)
