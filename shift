@@ -1,0 +1,75 @@
+-- ShiftLock Script corrigido para exploit (Mobile, estilo PC)
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+-- Criar GUI
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "ShiftLockGui"
+gui.ResetOnSpawn = false
+
+local button = Instance.new("TextButton")
+button.Name = "ToggleButton"
+button.Size = UDim2.new(0, 100, 0, 40)
+button.Position = UDim2.new(0, 20, 0, 100)
+button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Text = "ShiftLock: OFF"
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 18
+button.Parent = gui
+button.Active = true
+button.Draggable = true
+
+local shiftLockEnabled = false
+local rotating = false
+local lastTouchPos = nil
+
+button.MouseButton1Click:Connect(function()
+    shiftLockEnabled = not shiftLockEnabled
+    button.Text = shiftLockEnabled and "ShiftLock: ON" or "ShiftLock: OFF"
+    
+    local char = player.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.AutoRotate = not shiftLockEnabled
+    end
+end)
+
+UserInputService.TouchStarted:Connect(function(input, gp)
+    if shiftLockEnabled and not gp then
+        -- Detecta se o toque não foi em UI
+        rotating = true
+        lastTouchPos = input.Position
+    end
+end)
+
+UserInputService.TouchEnded:Connect(function(input, gp)
+    if rotating then
+        rotating = false
+        lastTouchPos = nil
+    end
+end)
+
+UserInputService.TouchMoved:Connect(function(input, gp)
+    if rotating and lastTouchPos then
+        local delta = input.Position - lastTouchPos
+        local camCF = camera.CFrame
+        local rot = CFrame.Angles(0, -delta.X * 0.005, 0)
+        camera.CFrame = rot * camCF
+        lastTouchPos = input.Position
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if shiftLockEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local rootPart = player.Character.HumanoidRootPart
+        local camLook = camera.CFrame.LookVector
+        local yaw = CFrame.new(Vector3.zero, Vector3.new(camLook.X, 0, camLook.Z))
+        rootPart.CFrame = CFrame.new(rootPart.Position) * yaw
+    end
+end)
