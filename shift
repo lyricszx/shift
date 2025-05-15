@@ -2,48 +2,46 @@
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 ScreenGui.Name = "ShiftLockGui"
 
-local ToggleButton = Instance.new("TextButton", ScreenGui)
-ToggleButton.Size = UDim2.new(0, 100, 0, 40)
-ToggleButton.Position = UDim2.new(0, 10, 0.8, 0)
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Parent = ScreenGui
+ToggleButton.Size = UDim2.new(0, 120, 0, 40)
+ToggleButton.Position = UDim2.new(0, 10, 0.75, 0)
 ToggleButton.Text = "Shift Lock OFF"
-ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.BorderSizePixel = 2
-ToggleButton.BorderColor3 = Color3.fromRGB(255, 255, 0)
 ToggleButton.TextScaled = true
+ToggleButton.BorderSizePixel = 0
 
--- Variáveis
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local camera = game.Workspace.CurrentCamera
+-- Variáveis principais
+local player = game.Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local runService = game:GetService("RunService")
+local uis = game:GetService("UserInputService")
 local shiftLocked = false
+local connection
 
--- Função para ativar/desativar Shift Lock
+-- Função que trava o personagem olhando pra onde a câmera aponta
+local function lockCharacterToCamera()
+	if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+
+	local root = player.Character.HumanoidRootPart
+	local camLook = camera.CFrame.LookVector
+	local flatLook = Vector3.new(camLook.X, 0, camLook.Z).Unit
+
+	root.CFrame = CFrame.new(root.Position, root.Position + flatLook)
+end
+
+-- Alterna o Shift Lock
 local function toggleShiftLock()
 	shiftLocked = not shiftLocked
 	ToggleButton.Text = shiftLocked and "Shift Lock ON" or "Shift Lock OFF"
 
 	if shiftLocked then
-		camera.CameraSubject = player.Character:FindFirstChild("Humanoid")
-		camera.CameraType = Enum.CameraType.Scriptable
-
-		game:GetService("RunService").RenderStepped:Connect(function()
-			if shiftLocked and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-				local rootPart = player.Character.HumanoidRootPart
-				local direction = (camera.CFrame.Position - rootPart.Position).Unit
-				local lookVector = Vector3.new(direction.X, 0, direction.Z).Unit
-				rootPart.CFrame = CFrame.new(rootPart.Position, rootPart.Position + lookVector)
-			end
-		end)
+		connection = runService.RenderStepped:Connect(lockCharacterToCamera)
 	else
-		camera.CameraType = Enum.CameraType.Custom
+		if connection then connection:Disconnect() end
 	end
 end
 
--- Conecta o botão à função
+-- Ativa o botão
 ToggleButton.MouseButton1Click:Connect(toggleShiftLock)
-
--- Garante que o botão funcione em mobile
-if not game:GetService("UserInputService").KeyboardEnabled then
-	ToggleButton.Position = UDim2.new(0.8, 0, 0.8, 0) -- muda posição se for mobile
-end
