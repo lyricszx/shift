@@ -1,4 +1,4 @@
--- ShiftLock Script corrigido para exploit (Mobile, estilo PC)
+-- ShiftLock Script
 if not game:IsLoaded() then game.Loaded:Wait() end
 
 local Players = game:GetService("Players")
