@@ -1,4 +1,4 @@
--- Cria a GUI
+-- GUI
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 ScreenGui.Name = "ShiftLockGui"
 
@@ -11,8 +11,10 @@ ToggleButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleButton.TextScaled = true
 ToggleButton.BorderSizePixel = 0
+ToggleButton.Active = true
+ToggleButton.Draggable = false -- a gente vai fazer o sistema de drag na mão
 
--- Variáveis principais
+-- Variáveis
 local player = game.Players.LocalPlayer
 local camera = workspace.CurrentCamera
 local runService = game:GetService("RunService")
@@ -20,9 +22,23 @@ local uis = game:GetService("UserInputService")
 local shiftLocked = false
 local connection
 
--- Função que trava o personagem olhando pra onde a câmera aponta
+-- Função: verificar se está num veículo
+local function isInVehicle()
+	local char = player.Character
+	if not char then return false end
+
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("VehicleSeat") and part.Occupant == char:FindFirstChild("Humanoid") then
+			return true
+		end
+	end
+	return false
+end
+
+-- Função: trava o personagem olhando para onde a câmera aponta
 local function lockCharacterToCamera()
 	if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+	if isInVehicle() then return end
 
 	local root = player.Character.HumanoidRootPart
 	local camLook = camera.CFrame.LookVector
@@ -31,7 +47,7 @@ local function lockCharacterToCamera()
 	root.CFrame = CFrame.new(root.Position, root.Position + flatLook)
 end
 
--- Alterna o Shift Lock
+-- Alternar Shift Lock
 local function toggleShiftLock()
 	shiftLocked = not shiftLocked
 	ToggleButton.Text = shiftLocked and "Shift Lock ON" or "Shift Lock OFF"
@@ -43,5 +59,40 @@ local function toggleShiftLock()
 	end
 end
 
--- Ativa o botão
 ToggleButton.MouseButton1Click:Connect(toggleShiftLock)
+
+-- Função de arrastar com o dedo
+local dragging = false
+local dragInput, dragStart, startPos
+
+ToggleButton.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = ToggleButton.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+ToggleButton.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+
+uis.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		ToggleButton.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+end)
